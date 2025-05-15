@@ -27,28 +27,25 @@ import {
   MenuList,
   MenuItem,
   Select,
-  Checkbox,
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-interface Container {
+type Container = {
   id: number;
   title: string;
   created_at: string;
-}
+};
 
-interface Course {
+type Course = {
   id: number;
   container_id: number;
   title: string;
   link: string;
   is_locked: boolean;
-}
-
-
+};
 
 interface MoveCourseModalProps {
   isOpen: boolean;
@@ -162,46 +159,6 @@ const Config = () => {
         prerequisites: prereqMap.get(course.id) || []
       })));
     }
-  };
-
-  const handleUpdatePrerequisites = async (courseId: number, prerequisiteIds: number[]) => {
-    // Supprimer les anciens prérequis
-    await supabase
-      .from('course_prerequisites')
-      .delete()
-      .eq('course_id', courseId);
-
-    // Ajouter les nouveaux prérequis
-    if (prerequisiteIds.length > 0) {
-      const { error } = await supabase
-        .from('course_prerequisites')
-        .insert(
-          prerequisiteIds.map(prereqId => ({
-            course_id: courseId,
-            prerequisite_id: prereqId
-          }))
-        );
-
-      if (error) {
-        toast({
-          title: 'Erreur',
-          description: 'Impossible de mettre à jour les prérequis',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-    }
-
-    fetchPrerequisites();
-    toast({
-      title: 'Succès',
-      description: 'Prérequis mis à jour',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
   };
 
   useEffect(() => {

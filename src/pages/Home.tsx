@@ -1,24 +1,19 @@
 import {
-  Box,
   Container,
   Heading,
+  VStack,
+  Text,
+  Button,
   SimpleGrid,
   Card,
   CardHeader,
   CardBody,
-  VStack,
-  Text,
-  Button,
-  useColorModeValue,
   Tooltip,
-  HStack,
-  Badge,
-  IconButton,
+  useColorModeValue,
 } from '@chakra-ui/react';
-import { useAuth } from '../contexts/AuthContext';
-import { LockIcon, CheckIcon } from '@chakra-ui/icons';
-import { useEffect, useState } from 'react';
+import { LockIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabaseClient';
+import { useEffect, useState } from 'react';
 
 interface Container {
   id: number;
@@ -33,8 +28,6 @@ interface Course {
   link: string;
   is_locked: boolean;
 }
-
-
 
 const CourseButton = ({ course }: { course: Course }) => {
   if (course.is_locked) {
