@@ -1,5 +1,5 @@
-import { Box, Container, Flex, Heading, Button, Text, HStack } from '@chakra-ui/react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Box, Button, Container, Flex, HStack, Text, Heading } from '@chakra-ui/react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
@@ -29,25 +29,35 @@ const Navbar = () => {
                   ({user?.role})
                 </Text>
               </Flex>
-              {isAdmin && (
-                <RouterLink to="/config">
-                  <Button
-                    colorScheme="whiteAlpha"
-                    variant="ghost"
-                    size="sm"
-                  >
-                    Configuration
-                  </Button>
-                </RouterLink>
+              <Button
+                as={Link}
+                to="/"
+                variant="ghost"
+                colorScheme="whiteAlpha"
+                size="sm"
+              >
+                Accueil
+              </Button>
+              {user?.role === 'admin' && (
+                <Button
+                  as={Link}
+                  to="/config"
+                  variant="ghost"
+                  colorScheme="whiteAlpha"
+                  size="sm"
+                >
+                  Configuration
+                </Button>
               )}
+              <Button
+                colorScheme="whiteAlpha"
+                variant="solid"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Déconnexion
+              </Button>
             </HStack>
-            <Button
-              colorScheme="whiteAlpha"
-              variant="solid"
-              onClick={handleSignOut}
-            >
-              Déconnexion
-            </Button>
           </Flex>
         </Flex>
       </Container>
