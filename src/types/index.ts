@@ -1,3 +1,13 @@
+export type UserRole = 'admin' | 'user';
+
+export type User = {
+  id: number;
+  username: string;
+  password?: string;
+  role: UserRole;
+  created_at?: string;
+};
+
 export type Container = {
   id: number;
   title: string;

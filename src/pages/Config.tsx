@@ -33,7 +33,7 @@ import { ChevronDownIcon } from '@chakra-ui/icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-import { Container, Course } from '../types';
+import { Container, Course, User, UserRole } from '../types';
 
 interface MoveCourseModalProps {
   isOpen: boolean;
@@ -90,15 +90,24 @@ const MoveCourseModal = ({ isOpen, onClose, course, containers, currentContainer
 const Config = () => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [newContainerTitle, setNewContainerTitle] = useState('');
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [newCourseTitle, setNewCourseTitle] = useState('');
   const [newCourseLink, setNewCourseLink] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<UserRole>('user');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isMoveOpen,
     onOpen: onMoveOpen,
     onClose: onMoveClose
+  } = useDisclosure();
+  const {
+    isOpen: isUserModalOpen,
+    onOpen: onUserModalOpen,
+    onClose: onUserModalClose
   } = useDisclosure();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
@@ -149,10 +158,95 @@ const Config = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, username, role, created_at')
+      .order('created_at');
+    
+    if (data) {
+      setUsers(data);
+    }
+  };
+
+  const handleAddUser = async () => {
+    if (!newUsername.trim() || !newPassword.trim()) {
+      toast({
+        title: 'Erreur',
+        description: 'Le nom d\'utilisateur et le mot de passe sont requis',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .rpc('add_user', {
+        p_username: newUsername,
+        p_password: newPassword,
+        p_role: newUserRole
+      });
+
+    if (error) {
+      console.error('Error adding user:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de créer l\'utilisateur',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setNewUsername('');
+    setNewPassword('');
+    setNewUserRole('user');
+    onUserModalClose();
+    fetchUsers();
+    toast({
+      title: 'Succès',
+      description: 'Utilisateur créé',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    const { data, error } = await supabase
+      .rpc('delete_user', {
+        p_user_id: userId
+      });
+
+    if (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de supprimer l\'utilisateur',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    fetchUsers();
+    toast({
+      title: 'Succès',
+      description: 'Utilisateur supprimé',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
   useEffect(() => {
     fetchContainers();
     fetchCourses();
     fetchPrerequisites();
+    fetchUsers();
   }, []);
 
   const handleAddContainer = async () => {
@@ -323,6 +417,45 @@ const Config = () => {
     <ChakraContainer maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
         <Heading>Configuration</Heading>
+        
+        {/* Gestion des utilisateurs */}
+        <Box>
+          <Heading size="md" mb={4}>Gestion des utilisateurs</Heading>
+          <HStack mb={4}>
+            <Button
+              colorScheme="blue"
+              onClick={onUserModalOpen}
+            >
+              Ajouter un utilisateur
+            </Button>
+          </HStack>
+          
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+            {users.map((user) => (
+              <Card key={user.id}>
+                <CardHeader>
+                  <HStack justify="space-between">
+                    <Heading size="sm">{user.username}</Heading>
+                    <HStack>
+                      <Text fontSize="sm" color={user.role === 'admin' ? 'green.500' : 'blue.500'}>
+                        {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                      </Text>
+                      {user.username !== 'admin' && (
+                        <IconButton
+                          aria-label="Supprimer l'utilisateur"
+                          children="X"
+                          colorScheme="red"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                        />
+                      )}
+                    </HStack>
+                  </HStack>
+                </CardHeader>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Box>
         
         {/* Ajout de container */}
         <Box>
@@ -504,6 +637,52 @@ const Config = () => {
 
               <Button colorScheme="blue" width="100%" onClick={handleAddCourse}>
                 Ajouter le cours
+              </Button>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal d'ajout d'utilisateur */}
+      <Modal isOpen={isUserModalOpen} onClose={onUserModalClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Ajouter un utilisateur</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4}>
+              <FormControl>
+                <FormLabel>Nom d'utilisateur</FormLabel>
+                <Input
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Entrez le nom d'utilisateur"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Mot de passe</FormLabel>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Entrez le mot de passe"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Rôle</FormLabel>
+                <Select
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as UserRole)}
+                >
+                  <option value="user">Utilisateur</option>
+                  <option value="admin">Administrateur</option>
+                </Select>
+              </FormControl>
+
+              <Button colorScheme="blue" width="100%" onClick={handleAddUser}>
+                Ajouter l'utilisateur
               </Button>
             </VStack>
           </ModalBody>

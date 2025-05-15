@@ -28,14 +28,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (username: string, password: string) => {
     setLoading(true);
     try {
+      // Utiliser une requête SQL directe via RPC
       const { data, error } = await supabase
-        .from('users')
-        .select('id, username, role')
-        .eq('username', username)
-        .eq('password', password)
-        .single();
+        .rpc('get_user', {
+          p_username: username,
+          p_password: password
+        });
 
-      if (error || !data) {
+      if (error) {
+        console.error('RPC Error:', error);
+        throw new Error('Identifiants incorrects');
+      }
+
+      if (!data) {
         throw new Error('Identifiants incorrects');
       }
 
