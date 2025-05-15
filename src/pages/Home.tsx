@@ -11,7 +11,7 @@ const Home = () => {
 
   const checkConnection = async () => {
     try {
-      const { data, error } = await supabase.auth.getSession();
+      const { error } = await supabase.auth.getSession();
       if (error) throw error;
       setConnectionStatus('Connexion à Supabase réussie ! ✅');
     } catch (error) {
