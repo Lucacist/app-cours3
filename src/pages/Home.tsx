@@ -1,5 +1,5 @@
 import {
-  Container,
+  Container as ChakraContainer,
   Heading,
   VStack,
   Text,
@@ -15,36 +15,13 @@ import { LockIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabaseClient';
 import { useEffect, useState } from 'react';
 
-interface Container {
-  id: number;
-  title: string;
-  created_at: string;
-}
-
-interface Course {
-  id: number;
-  container_id: number;
-  title: string;
-  link: string;
-  is_locked: boolean;
-}
+import { Container, Course } from '../types';
 
 const CourseButton = ({ course }: { course: Course }) => {
   if (course.is_locked) {
     return (
-      <Tooltip
-        label="Ce cours n'est pas encore disponible"
-        placement="top"
-        hasArrow
-      >
-        <Button
-          width="100%"
-          variant="outline"
-          colorScheme="gray"
-          isDisabled
-          justifyContent="flex-start"
-          leftIcon={<LockIcon />}
-        >
+      <Tooltip label="Ce cours n'est pas encore disponible" placement="top" hasArrow>
+        <Button width="100%" variant="outline" colorScheme="gray" isDisabled leftIcon={<LockIcon />}>
           {course.title}
         </Button>
       </Tooltip>
@@ -53,13 +30,13 @@ const CourseButton = ({ course }: { course: Course }) => {
 
   return (
     <Button
-      width="100%"
       as="a"
       href={course.link}
       target="_blank"
-      variant="outline"
+      rel="noopener noreferrer"
+      width="100%"
+      variant="solid"
       colorScheme="blue"
-      justifyContent="flex-start"
     >
       {course.title}
     </Button>
@@ -67,47 +44,32 @@ const CourseButton = ({ course }: { course: Course }) => {
 };
 
 const Home = () => {
-  const [connectionStatus, setConnectionStatus] = useState('Vérification...');
   const [containers, setContainers] = useState<Container[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const cardBg = useColorModeValue('white', 'gray.700');
 
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const { error } = await supabase.auth.getSession();
-        if (error) throw error;
-        setConnectionStatus('Connexion à Supabase réussie ! ✅');
-      } catch (error) {
-        console.error('Erreur:', error);
-        setConnectionStatus('Erreur de connexion à Supabase ❌');
-      }
-    };
-
-    checkConnection();
-  }, []);
-
-
-
-  useEffect(() => {
     const fetchData = async () => {
-      // Récupérer les containers
-      const { data: containersData } = await supabase
-        .from('containers')
-        .select('*')
-        .order('created_at');
-      
-      if (containersData) {
-        setContainers(containersData);
-      }
+      try {
+        const { data: containersData } = await supabase
+          .from('containers')
+          .select('*')
+          .order('created_at');
+        
+        if (containersData) {
+          setContainers(containersData);
+        }
 
-      const { data: coursesData } = await supabase
-        .from('courses')
-        .select('*')
-        .order('created_at');
-      
-      if (coursesData) {
-        setCourses(coursesData);
+        const { data: coursesData } = await supabase
+          .from('courses')
+          .select('*')
+          .order('created_at');
+        
+        if (coursesData) {
+          setCourses(coursesData);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
       }
     };
 
@@ -115,13 +77,13 @@ const Home = () => {
   }, []);
 
   return (
-    <Container maxW="container.xl" py={8}>
+    <ChakraContainer maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
         <Heading>Cours disponibles</Heading>
         
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {containers.map((container) => (
-            <Card key={container.id} bg={cardBg} shadow="md">
+          {containers.map(container => (
+            <Card key={container.id} bg={cardBg}>
               <CardHeader>
                 <Heading size="md">{container.title}</Heading>
               </CardHeader>
@@ -135,7 +97,7 @@ const Home = () => {
                   }
                   {courses.filter(course => course.container_id === container.id).length === 0 && (
                     <Text color="gray.500" fontSize="sm">
-                      Aucun cours disponible
+                      Aucun cours dans cette catégorie
                     </Text>
                   )}
                 </VStack>
@@ -144,7 +106,7 @@ const Home = () => {
           ))}
         </SimpleGrid>
       </VStack>
-    </Container>
+    </ChakraContainer>
   );
 };
 

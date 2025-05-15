@@ -1,6 +1,6 @@
 import {
   Box,
-  Container,
+  Container as ChakraContainer,
   Heading,
   VStack,
   Text,
@@ -33,19 +33,7 @@ import { ChevronDownIcon } from '@chakra-ui/icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-type Container = {
-  id: number;
-  title: string;
-  created_at: string;
-};
-
-type Course = {
-  id: number;
-  container_id: number;
-  title: string;
-  link: string;
-  is_locked: boolean;
-};
+import { Container, Course } from '../types';
 
 interface MoveCourseModalProps {
   isOpen: boolean;
@@ -332,7 +320,7 @@ const Config = () => {
   };
 
   return (
-    <Container maxW="container.xl" py={8}>
+    <ChakraContainer maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
         <Heading>Configuration</Heading>
         
@@ -521,7 +509,7 @@ const Config = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </Container>
+    </ChakraContainer>
   );
 };
 
