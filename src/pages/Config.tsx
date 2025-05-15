@@ -27,6 +27,7 @@ import {
   MenuList,
   MenuItem,
   Select,
+  Checkbox,
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 
@@ -44,7 +45,10 @@ interface Course {
   container_id: number;
   title: string;
   link: string;
+  is_locked: boolean;
 }
+
+
 
 interface MoveCourseModalProps {
   isOpen: boolean;
@@ -112,6 +116,7 @@ const Config = () => {
     onClose: onMoveClose
   } = useDisclosure();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
   const toast = useToast();
 
   const fetchContainers = async () => {
@@ -136,9 +141,73 @@ const Config = () => {
     }
   };
 
+  const fetchPrerequisites = async () => {
+    const { data } = await supabase
+      .from('course_prerequisites')
+      .select('course_id, prerequisite_id');
+    
+    if (data) {
+      // Organiser les prérequis par cours
+      const prereqMap = new Map<number, number[]>();
+      data.forEach(({ course_id, prerequisite_id }) => {
+        if (!prereqMap.has(course_id)) {
+          prereqMap.set(course_id, []);
+        }
+        prereqMap.get(course_id)?.push(prerequisite_id);
+      });
+
+      // Mettre à jour les cours avec leurs prérequis
+      setCourses(prevCourses => prevCourses.map(course => ({
+        ...course,
+        prerequisites: prereqMap.get(course.id) || []
+      })));
+    }
+  };
+
+  const handleUpdatePrerequisites = async (courseId: number, prerequisiteIds: number[]) => {
+    // Supprimer les anciens prérequis
+    await supabase
+      .from('course_prerequisites')
+      .delete()
+      .eq('course_id', courseId);
+
+    // Ajouter les nouveaux prérequis
+    if (prerequisiteIds.length > 0) {
+      const { error } = await supabase
+        .from('course_prerequisites')
+        .insert(
+          prerequisiteIds.map(prereqId => ({
+            course_id: courseId,
+            prerequisite_id: prereqId
+          }))
+        );
+
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de mettre à jour les prérequis',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+    }
+
+    fetchPrerequisites();
+    toast({
+      title: 'Succès',
+      description: 'Prérequis mis à jour',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
   useEffect(() => {
     fetchContainers();
     fetchCourses();
+    fetchPrerequisites();
   }, []);
 
   const handleAddContainer = async () => {
@@ -399,6 +468,36 @@ const Config = () => {
                                   Déplacer
                                 </MenuItem>
                                 <MenuItem
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from('courses')
+                                      .update({ is_locked: !course.is_locked })
+                                      .eq('id', course.id);
+                                    
+                                    if (error) {
+                                      toast({
+                                        title: 'Erreur',
+                                        description: 'Impossible de modifier le statut du cours',
+                                        status: 'error',
+                                        duration: 3000,
+                                        isClosable: true,
+                                      });
+                                      return;
+                                    }
+
+                                    fetchCourses();
+                                    toast({
+                                      title: 'Succès',
+                                      description: `Cours ${course.is_locked ? 'débloqué' : 'bloqué'}`,
+                                      status: 'success',
+                                      duration: 3000,
+                                      isClosable: true,
+                                    });
+                                  }}
+                                >
+                                  {course.is_locked ? 'Débloquer' : 'Bloquer'}
+                                </MenuItem>
+                                <MenuItem
                                   color="red.500"
                                   onClick={() => handleDeleteCourse(course.id)}
                                 >
@@ -429,6 +528,8 @@ const Config = () => {
           onMove={handleMoveCourse}
         />
       )}
+
+
 
       {/* Modal d'ajout de cours */}
       <Modal isOpen={isOpen} onClose={onClose}>

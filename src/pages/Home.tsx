@@ -10,7 +10,13 @@ import {
   Text,
   Button,
   useColorModeValue,
+  Tooltip,
+  HStack,
+  Badge,
+  IconButton,
 } from '@chakra-ui/react';
+import { useAuth } from '../contexts/AuthContext';
+import { LockIcon, CheckIcon } from '@chakra-ui/icons';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -25,7 +31,47 @@ interface Course {
   container_id: number;
   title: string;
   link: string;
+  is_locked: boolean;
 }
+
+
+
+const CourseButton = ({ course }: { course: Course }) => {
+  if (course.is_locked) {
+    return (
+      <Tooltip
+        label="Ce cours n'est pas encore disponible"
+        placement="top"
+        hasArrow
+      >
+        <Button
+          width="100%"
+          variant="outline"
+          colorScheme="gray"
+          isDisabled
+          justifyContent="flex-start"
+          leftIcon={<LockIcon />}
+        >
+          {course.title}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button
+      width="100%"
+      as="a"
+      href={course.link}
+      target="_blank"
+      variant="outline"
+      colorScheme="blue"
+      justifyContent="flex-start"
+    >
+      {course.title}
+    </Button>
+  );
+};
 
 const Home = () => {
   const [connectionStatus, setConnectionStatus] = useState('Vérification...');
@@ -48,6 +94,8 @@ const Home = () => {
     checkConnection();
   }, []);
 
+
+
   useEffect(() => {
     const fetchData = async () => {
       // Récupérer les containers
@@ -60,7 +108,6 @@ const Home = () => {
         setContainers(containersData);
       }
 
-      // Récupérer les cours
       const { data: coursesData } = await supabase
         .from('courses')
         .select('*')
@@ -90,18 +137,7 @@ const Home = () => {
                   {courses
                     .filter(course => course.container_id === container.id)
                     .map(course => (
-                      <Button
-                        key={course.id}
-                        as="a"
-                        href={course.link}
-                        target="_blank"
-                        variant="outline"
-                        colorScheme="blue"
-                        justifyContent="flex-start"
-                        leftIcon={<Text fontSize="sm">📚</Text>}
-                      >
-                        {course.title}
-                      </Button>
+                      <CourseButton key={course.id} course={course} />
                     ))
                   }
                   {courses.filter(course => course.container_id === container.id).length === 0 && (
