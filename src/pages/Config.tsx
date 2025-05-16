@@ -87,10 +87,16 @@ const MoveCourseModal = ({ isOpen, onClose, course, containers, currentContainer
   );
 };
 
+interface UserCourseAccess {
+  userId: number;
+  courseId: number;
+}
+
 const Config = () => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [userCourses, setUserCourses] = useState<UserCourseAccess[]>([]);
   const [newContainerTitle, setNewContainerTitle] = useState('');
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [newCourseTitle, setNewCourseTitle] = useState('');
@@ -98,6 +104,7 @@ const Config = () => {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isMoveOpen,
@@ -108,6 +115,11 @@ const Config = () => {
     isOpen: isUserModalOpen,
     onOpen: onUserModalOpen,
     onClose: onUserModalClose
+  } = useDisclosure();
+  const {
+    isOpen: isAccessModalOpen,
+    onOpen: onAccessModalOpen,
+    onClose: onAccessModalClose
   } = useDisclosure();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
@@ -242,11 +254,87 @@ const Config = () => {
     });
   };
 
+  const fetchUserCourses = async () => {
+    const { data } = await supabase
+      .from('user_courses')
+      .select('user_id, course_id');
+    
+    if (data) {
+      setUserCourses(data.map(item => ({
+        userId: item.user_id,
+        courseId: item.course_id
+      })));
+    }
+  };
+
+  const handleAssignCourse = async (userId: number, courseId: number) => {
+    const { data, error } = await supabase
+      .rpc('assign_course_to_user', {
+        p_user_id: userId,
+        p_course_id: courseId
+      });
+
+    if (error) {
+      console.error('Error assigning course:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible d\'attribuer le cours',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    fetchUserCourses();
+    toast({
+      title: 'Succès',
+      description: 'Cours attribué',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handleRemoveCourse = async (userId: number, courseId: number) => {
+    const { data, error } = await supabase
+      .rpc('remove_course_from_user', {
+        p_user_id: userId,
+        p_course_id: courseId
+      });
+
+    if (error) {
+      console.error('Error removing course:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de retirer le cours',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    fetchUserCourses();
+    toast({
+      title: 'Succès',
+      description: 'Cours retiré',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const hasAccess = (userId: number, courseId: number) => {
+    return userCourses.some(uc => uc.userId === userId && uc.courseId === courseId);
+  };
+
   useEffect(() => {
     fetchContainers();
     fetchCourses();
     fetchPrerequisites();
     fetchUsers();
+    fetchUserCourses();
   }, []);
 
   const handleAddContainer = async () => {
@@ -440,15 +528,29 @@ const Config = () => {
                       <Text fontSize="sm" color={user.role === 'admin' ? 'green.500' : 'blue.500'}>
                         {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
                       </Text>
-                      {user.username !== 'admin' && (
-                        <IconButton
-                          aria-label="Supprimer l'utilisateur"
-                          children="X"
-                          colorScheme="red"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                        />
-                      )}
+                      <HStack>
+                        {user.role !== 'admin' && (
+                          <Button
+                            size="sm"
+                            colorScheme="blue"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              onAccessModalOpen();
+                            }}
+                          >
+                            Gérer accès
+                          </Button>
+                        )}
+                        {user.username !== 'admin' && (
+                          <IconButton
+                            aria-label="Supprimer l'utilisateur"
+                            children="X"
+                            colorScheme="red"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                          />
+                        )}
+                      </HStack>
                     </HStack>
                   </HStack>
                 </CardHeader>
@@ -566,14 +668,14 @@ const Config = () => {
                                     fetchCourses();
                                     toast({
                                       title: 'Succès',
-                                      description: `Cours ${course.is_locked ? 'débloqué' : 'bloqué'}`,
+                                      description: `Cours ${course.is_locked ? 'débloqué' : 'bloqué'} pour tous les utilisateurs`,
                                       status: 'success',
                                       duration: 3000,
                                       isClosable: true,
                                     });
                                   }}
                                 >
-                                  {course.is_locked ? 'Débloquer' : 'Bloquer'}
+                                  {course.is_locked ? 'Débloquer pour tous' : 'Bloquer pour tous'}
                                 </MenuItem>
                                 <MenuItem
                                   color="red.500"
@@ -688,6 +790,55 @@ const Config = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* Modal de gestion des accès aux cours */}
+      {selectedUser && (
+        <Modal isOpen={isAccessModalOpen} onClose={onAccessModalClose} size="xl">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Gérer les accès pour {selectedUser.username}</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <VStack spacing={4} align="stretch">
+                <Text>Sélectionnez les cours auxquels cet utilisateur a accès :</Text>
+                
+                {containers.map(container => (
+                  <Box key={container.id} mb={4}>
+                    <Heading size="sm" mb={2}>{container.title}</Heading>
+                    <VStack align="stretch" spacing={2}>
+                      {courses
+                        .filter(course => course.container_id === container.id)
+                        .map(course => (
+                          <HStack key={course.id} justify="space-between">
+                            <Text>{course.title}</Text>
+                            <Button
+                              size="sm"
+                              colorScheme={hasAccess(selectedUser.id, course.id) ? "red" : "green"}
+                              onClick={() => {
+                                if (hasAccess(selectedUser.id, course.id)) {
+                                  handleRemoveCourse(selectedUser.id, course.id);
+                                } else {
+                                  handleAssignCourse(selectedUser.id, course.id);
+                                }
+                              }}
+                            >
+                              {hasAccess(selectedUser.id, course.id) ? "Retirer l'accès" : "Donner accès"}
+                            </Button>
+                          </HStack>
+                        ))
+                      }
+                    </VStack>
+                  </Box>
+                ))}
+
+                <Button colorScheme="blue" onClick={onAccessModalClose} mt={4}>
+                  Fermer
+                </Button>
+              </VStack>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
     </ChakraContainer>
   );
 };

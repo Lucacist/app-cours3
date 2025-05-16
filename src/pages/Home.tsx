@@ -51,6 +51,16 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Récupérer l'utilisateur connecté
+        const userJson = localStorage.getItem('user');
+        if (!userJson) {
+          console.error('User not found in localStorage');
+          return;
+        }
+        
+        const user = JSON.parse(userJson);
+        
+        // Récupérer les containers
         const { data: containersData } = await supabase
           .from('containers')
           .select('*')
@@ -60,13 +70,27 @@ const Home = () => {
           setContainers(containersData);
         }
 
-        const { data: coursesData } = await supabase
-          .from('courses')
-          .select('*')
-          .order('created_at');
-        
-        if (coursesData) {
-          setCourses(coursesData);
+        // Récupérer les cours accessibles à l'utilisateur
+        if (user.role === 'admin') {
+          // Les admins voient tous les cours
+          const { data: coursesData } = await supabase
+            .from('courses')
+            .select('*')
+            .order('created_at');
+          
+          if (coursesData) {
+            setCourses(coursesData);
+          }
+        } else {
+          // Les utilisateurs normaux voient seulement leurs cours attribués
+          const { data: coursesData } = await supabase
+            .rpc('get_user_courses', {
+              p_user_id: user.id
+            });
+          
+          if (coursesData) {
+            setCourses(coursesData);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
