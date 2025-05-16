@@ -19,5 +19,4 @@ export type Course = {
   container_id: number;
   title: string;
   link: string;
-  is_locked: boolean;
 };
