@@ -1,44 +1,26 @@
-import {
-  Container as ChakraContainer,
-  Heading,
-  VStack,
-  Text,
-  Button,
-  SimpleGrid,
-  Card,
-  CardHeader,
-  CardBody,
-  Tooltip,
-  useColorModeValue,
-} from '@chakra-ui/react';
-import { LockIcon } from '@chakra-ui/icons';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useEffect, useState } from 'react';
 
-import { Container, Course } from '../types';
+import { Container as ContainerType, Course } from '../types';
 
 // Composant simplifié qui ignore le champ is_locked
 const CourseButton = ({ course }: { course: Course }) => {
   return (
-    <Button
-      as="a"
+    <a
+      className="course-button"
       href={course.link}
       target="_blank"
       rel="noopener noreferrer"
-      width="100%"
-      variant="solid"
-      colorScheme="blue"
     >
       {course.title}
-    </Button>
+    </a>
   );
 };
 
 const Home = () => {
-  const [containers, setContainers] = useState<Container[]>([]);
+  const [containers, setContainers] = useState<ContainerType[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const cardBg = useColorModeValue('white', 'gray.700');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -136,40 +118,34 @@ const Home = () => {
   }, []);
 
   return (
-    <ChakraContainer maxW="container.xl" py={8}>
-      <VStack spacing={8} align="stretch">
-        <Heading>Cours disponibles</Heading>
-        
-        {loading ? (
-          <Text>Chargement des cours...</Text>
-        ) : (
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {containers.map(container => (
-              <Card key={container.id} bg={cardBg}>
-                <CardHeader>
-                  <Heading size="md">{container.title}</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack align="stretch" spacing={3}>
-                    {courses
-                      .filter(course => course.container_id === container.id)
-                      .map(course => (
-                        <CourseButton key={course.id} course={course} />
-                      ))
-                    }
-                    {courses.filter(course => course.container_id === container.id).length === 0 && (
-                      <Text color="gray.500" fontSize="sm">
-                        Aucun cours dans cette catégorie
-                      </Text>
-                    )}
-                  </VStack>
-                </CardBody>
-              </Card>
-            ))}
-          </SimpleGrid>
-        )}
-      </VStack>
-    </ChakraContainer>
+    <div className="home-container">
+      <h1 className="page-title">Cours disponibles</h1>
+      
+      {loading ? (
+        <div className="loading-message">Chargement des cours...</div>
+      ) : (
+        <div className="course-grid">
+          {containers.map(container => (
+            <div key={container.id} className="container-card">
+              <h2 className="container-title">{container.title}</h2>
+              <div className="course-list">
+                {courses
+                  .filter(course => course.container_id === container.id)
+                  .map(course => (
+                    <CourseButton key={course.id} course={course} />
+                  ))
+                }
+                {courses.filter(course => course.container_id === container.id).length === 0 && (
+                  <div className="empty-message">
+                    Aucun cours dans cette catégorie
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

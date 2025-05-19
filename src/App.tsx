@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChakraProvider, Box, Container } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -11,37 +10,39 @@ import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
-    <ChakraProvider>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Box minH="100vh" bg="gray.50">
-                    <Navbar />
-                    <Container maxW="container.xl" py={8}>
-                      <Home />
-                    </Container>
-                  </Box>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/config"
-              element={
-                <AdminRoute>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <div className="app-container">
                   <Navbar />
-                  <Config />
-                </AdminRoute>
-              }
-            />
-          </Routes>
-        </Router>
-      </AuthProvider>
-    </ChakraProvider>
+                  <div className="container page-container">
+                    <Home />
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/config"
+            element={
+              <AdminRoute>
+                <div className="app-container">
+                  <Navbar />
+                  <div className="container page-container">
+                    <Config />
+                  </div>
+                </div>
+              </AdminRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

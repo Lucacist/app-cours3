@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (username: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Attempting to sign in with:', { username });
       // Utiliser une requête SQL directe via RPC
       const { data, error } = await supabase
         .rpc('get_user', {
@@ -35,12 +36,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           p_password: password
         });
 
+      console.log('RPC response:', { data, error });
+
       if (error) {
-        console.error('RPC Error:', error);
+        console.error('RPC Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw new Error('Identifiants incorrects');
       }
 
       if (!data) {
+        console.error('No data returned from RPC call');
         throw new Error('Identifiants incorrects');
       }
 
@@ -50,10 +59,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role: data.role as UserRole
       };
 
+      console.log('Authentication successful:', userData);
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Authentication error:', error);
       throw error;
     } finally {
       setLoading(false);

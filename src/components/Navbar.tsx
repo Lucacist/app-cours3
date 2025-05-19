@@ -1,10 +1,12 @@
-import { Box, Button, Container, Flex, HStack, Text, Heading } from '@chakra-ui/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
+import '../styles/Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -14,54 +16,42 @@ const Navbar = () => {
       console.error('Erreur lors de la déconnexion:', error);
     }
   };
+
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+  
   return (
-    <Box bg="blue.500" py={4}>
-      <Container maxW="container.xl">
-        <Flex justify="space-between" align="center">
-          <Heading size="md" color="white">
-            Mon App
-          </Heading>
-          <Flex align="center" gap={4}>
-            <HStack spacing={4} align="center">
-              <Flex align="center" gap={2}>
-                <Text color="white">{user?.username}</Text>
-                <Text color="white" fontSize="sm" opacity={0.8}>
-                  ({user?.role})
-                </Text>
-              </Flex>
-              <Button
-                as={Link}
-                to="/"
-                variant="ghost"
-                colorScheme="whiteAlpha"
-                size="sm"
-              >
-                Accueil
-              </Button>
-              {user?.role === 'admin' && (
-                <Button
-                  as={Link}
-                  to="/config"
-                  variant="ghost"
-                  colorScheme="whiteAlpha"
-                  size="sm"
-                >
-                  Configuration
-                </Button>
-              )}
-              <Button
-                colorScheme="whiteAlpha"
-                variant="solid"
-                size="sm"
-                onClick={handleSignOut}
-              >
-                Déconnexion
-              </Button>
-            </HStack>
-          </Flex>
-        </Flex>
-      </Container>
-    </Box>
+    <nav className="navbar">
+      <div className="container navbar-container">
+        <Link to="/" className="navbar-brand">
+         App Cours
+        </Link>
+        
+        <button className="navbar-toggle" onClick={toggleMenu}>
+          <span>☰</span>
+        </button>
+        
+        <div className={`navbar-menu ${menuOpen ? 'open' : ''}`}>
+          
+          <div className="navbar-nav">
+            <Link to="/" className="navbar-link">
+              Accueil
+            </Link>
+            
+            {user?.role === 'admin' && (
+              <Link to="/config" className="navbar-link">
+                Configuration
+              </Link>
+            )}
+            
+            <button className="navbar-button" onClick={handleSignOut}>
+              Déconnexion
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 };
 

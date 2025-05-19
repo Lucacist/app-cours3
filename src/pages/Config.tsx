@@ -1,37 +1,7 @@
-import {
-  Box,
-  Container as ChakraContainer,
-  Heading,
-  VStack,
-  Text,
-  Button,
-  Input,
-  FormControl,
-  FormLabel,
-  useToast,
-  SimpleGrid,
-  Card,
-  CardHeader,
-  CardBody,
-  IconButton,
-  HStack,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  useDisclosure,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Select,
-} from '@chakra-ui/react';
-import { ChevronDownIcon } from '@chakra-ui/icons';
-
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import '../styles/Config.css';
 
 import { Container, Course, User, UserRole } from '../types';
 
@@ -53,37 +23,39 @@ const MoveCourseModal = ({ isOpen, onClose, course, containers, currentContainer
     onClose();
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Déplacer le cours</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody pb={6}>
-          <VStack spacing={4}>
-            <FormControl>
-              <FormLabel>Choisir le dossier de destination</FormLabel>
-              <Select
-                value={selectedContainerId}
-                onChange={(e) => setSelectedContainerId(Number(e.target.value))}
-              >
-                {containers
-                  .filter(container => container.id !== currentContainerId)
-                  .map(container => (
-                    <option key={container.id} value={container.id}>
-                      {container.title}
-                    </option>
-                  ))}
-              </Select>
-            </FormControl>
+  if (!isOpen) return null;
 
-            <Button colorScheme="blue" width="100%" onClick={handleMove}>
-              Déplacer
-            </Button>
-          </VStack>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <h2 className="modal-title">Déplacer le cours</h2>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label className="form-label">Choisir le dossier de destination</label>
+            <select
+              className="select"
+              value={selectedContainerId}
+              onChange={(e) => setSelectedContainerId(Number(e.target.value))}
+            >
+              {containers
+                .filter(container => container.id !== currentContainerId)
+                .map(container => (
+                  <option key={container.id} value={container.id}>
+                    {container.title}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <button className="btn btn-primary btn-block" onClick={handleMove}>
+            Déplacer
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -105,27 +77,31 @@ const Config = () => {
   const [newPassword, setNewPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const {
-    isOpen: isMoveOpen,
-    onOpen: onMoveOpen,
-    onClose: onMoveClose
-  } = useDisclosure();
-  const {
-    isOpen: isUserModalOpen,
-    onOpen: onUserModalOpen,
-    onClose: onUserModalClose
-  } = useDisclosure();
-  const {
-    isOpen: isAccessModalOpen,
-    onOpen: onAccessModalOpen,
-    onClose: onAccessModalClose
-  } = useDisclosure();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isCourseAccessModalOpen, setIsCourseAccessModalOpen] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-
-  const toast = useToast();
+  const [toastMessage, setToastMessage] = useState<{title: string, description: string, status: 'success' | 'error' | 'warning' | 'info'} | null>(null);
+  
+  // Fonctions pour remplacer useDisclosure
+  const onOpen = () => setIsOpen(true);
+  const onClose = () => setIsOpen(false);
+  const onMoveOpen = () => setIsMoveOpen(true);
+  const onMoveClose = () => setIsMoveOpen(false);
+  const onUserModalOpen = () => setIsUserModalOpen(true);
+  const onUserModalClose = () => setIsUserModalOpen(false);
+  const onAccessModalOpen = () => setIsAccessModalOpen(true);
+  const onAccessModalClose = () => setIsAccessModalOpen(false);
+  
+  // Fonction pour remplacer useToast
+  const showToast = (title: string, description: string, status: 'success' | 'error' | 'warning' | 'info') => {
+    setToastMessage({ title, description, status });
+    // Effacer le toast après 3 secondes
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const fetchContainers = async () => {
     const { data } = await supabase
@@ -157,7 +133,7 @@ const Config = () => {
     if (data) {
       // Organiser les prérequis par cours
       const prereqMap = new Map<number, number[]>();
-      data.forEach(({ course_id, prerequisite_id }) => {
+      data.forEach(({ course_id, prerequisite_id }: { course_id: number, prerequisite_id: number }) => {
         if (!prereqMap.has(course_id)) {
           prereqMap.set(course_id, []);
         }
@@ -206,13 +182,7 @@ const Config = () => {
 
   const handleAddUser = async () => {
     if (!newUsername.trim() || !newPassword.trim()) {
-      toast({
-        title: 'Erreur',
-        description: 'Le nom d\'utilisateur et le mot de passe sont requis',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Le nom d\'utilisateur et le mot de passe sont requis', 'error');
       return;
     }
 
@@ -225,13 +195,7 @@ const Config = () => {
 
     if (error) {
       console.error('Error adding user:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de créer l\'utilisateur',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de créer l\'utilisateur', 'error');
       return;
     }
 
@@ -240,13 +204,7 @@ const Config = () => {
     setNewUserRole('user');
     onUserModalClose();
     fetchUsers();
-    toast({
-      title: 'Succès',
-      description: 'Utilisateur créé',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Utilisateur créé', 'success');
   };
 
   const handleDeleteUser = async (userId: number) => {
@@ -257,24 +215,12 @@ const Config = () => {
 
     if (error) {
       console.error('Error deleting user:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de supprimer l\'utilisateur',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de supprimer l\'utilisateur', 'error');
       return;
     }
 
     fetchUsers();
-    toast({
-      title: 'Succès',
-      description: 'Utilisateur supprimé',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Utilisateur supprimé', 'success');
   };
 
   const fetchUserCourses = async () => {
@@ -288,18 +234,12 @@ const Config = () => {
       
       if (error) {
         console.error('Erreur lors de la récupération des accès utilisateur-cours:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Impossible de récupérer les accès aux cours',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
+        showToast('Erreur', 'Impossible de récupérer les accès aux cours', 'error');
         return;
       }
       
       if (data) {
-        const formattedData = data.map(item => ({
+        const formattedData = data.map((item: { user_id: number, course_id: number }) => ({
           userId: item.user_id,
           courseId: item.course_id
         }));
@@ -322,24 +262,12 @@ const Config = () => {
 
     if (error) {
       console.error('Error assigning course:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'attribuer le cours',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible d\'attribuer le cours', 'error');
       return;
     }
 
     fetchUserCourses();
-    toast({
-      title: 'Succès',
-      description: 'Cours attribué',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Cours attribué', 'success');
   };
 
   const handleRemoveCourse = async (userId: number, courseId: number) => {
@@ -351,24 +279,12 @@ const Config = () => {
 
     if (error) {
       console.error('Error removing course:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de retirer le cours',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de retirer le cours', 'error');
       return;
     }
 
     fetchUserCourses();
-    toast({
-      title: 'Succès',
-      description: 'Cours retiré',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Cours retiré', 'success');
   };
 
   const hasAccess = (userId: number, courseId: number) => {
@@ -409,13 +325,7 @@ const Config = () => {
           console.log('Données utilisateurs et accès mises à jour après ouverture de la modal');
         } catch (err) {
           console.error('Erreur lors de la mise à jour des données:', err);
-          toast({
-            title: 'Erreur',
-            description: 'Impossible de récupérer les données utilisateurs',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
-          });
+          showToast('Erreur', 'Impossible de récupérer les données utilisateurs', 'error');
         } finally {
           setIsLoadingUsers(false);
         }
@@ -427,13 +337,7 @@ const Config = () => {
 
   const handleAddContainer = async () => {
     if (!newContainerTitle.trim()) {
-      toast({
-        title: 'Erreur',
-        description: 'Le titre ne peut pas être vide',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Le titre ne peut pas être vide', 'error');
       return;
     }
 
@@ -442,25 +346,13 @@ const Config = () => {
       .insert([{ title: newContainerTitle }]);
 
     if (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de créer le container',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de créer le container', 'error');
       return;
     }
 
     setNewContainerTitle('');
     fetchContainers();
-    toast({
-      title: 'Succès',
-      description: 'Container créé',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Container créé', 'success');
   };
 
   const handleDeleteCourse = async (courseId: number) => {
@@ -470,24 +362,12 @@ const Config = () => {
       .eq('id', courseId);
 
     if (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de supprimer le cours',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de supprimer le cours', 'error');
       return;
     }
 
     fetchCourses();
-    toast({
-      title: 'Succès',
-      description: 'Cours supprimé',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Cours supprimé', 'success');
   };
 
   const handleMoveCourse = async (courseId: number, newContainerId: number) => {
@@ -497,24 +377,12 @@ const Config = () => {
       .eq('id', courseId);
 
     if (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de déplacer le cours',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de déplacer le cours', 'error');
       return;
     }
 
     fetchCourses();
-    toast({
-      title: 'Succès',
-      description: 'Cours déplacé',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Cours déplacé', 'success');
   };
 
   const handleDeleteContainer = async (id: number) => {
@@ -524,36 +392,18 @@ const Config = () => {
       .eq('id', id);
 
     if (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de supprimer le container',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible de supprimer le container', 'error');
       return;
     }
 
     fetchContainers();
     fetchCourses();
-    toast({
-      title: 'Succès',
-      description: 'Container supprimé',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Container supprimé', 'success');
   };
 
   const handleAddCourse = async () => {
     if (!selectedContainer || !newCourseTitle.trim() || !newCourseLink.trim()) {
-      toast({
-        title: 'Erreur',
-        description: 'Tous les champs sont requis',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Tous les champs sont requis', 'error');
       return;
     }
 
@@ -566,13 +416,7 @@ const Config = () => {
       }]);
 
     if (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'ajouter le cours',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Erreur', 'Impossible d\'ajouter le cours', 'error');
       return;
     }
 
@@ -580,153 +424,157 @@ const Config = () => {
     setNewCourseLink('');
     onClose();
     fetchCourses();
-    toast({
-      title: 'Succès',
-      description: 'Cours ajouté',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    showToast('Succès', 'Cours ajouté', 'success');
+  };
+
+  // Composant Toast personnalisé
+  const Toast = () => {
+    if (!toastMessage) return null;
+    
+    return (
+      <div className={`toast toast-${toastMessage.status}`}>
+        <div className="toast-content">
+          <h4 className="toast-title">{toastMessage.title}</h4>
+          <p className="toast-description">{toastMessage.description}</p>
+        </div>
+        <button className="toast-close" onClick={() => setToastMessage(null)}>&times;</button>
+      </div>
+    );
   };
 
   return (
-    <ChakraContainer maxW="container.xl" py={8}>
-      <VStack spacing={8} align="stretch">
-        <Heading>Configuration</Heading>
+    <div className="config-container">
+      {/* Afficher le toast s'il existe */}
+      <Toast />
+      
+      <div className="config-content">
+        <h1 className="config-title">Configuration</h1>
         
         {/* Gestion des utilisateurs */}
-        <Box>
-          <Heading size="md" mb={4}>Gestion des utilisateurs</Heading>
-          <HStack mb={4}>
-            <Button
-              colorScheme="blue"
+        <div className="config-section">
+          <h2 className="config-section-title">Gestion des utilisateurs</h2>
+          <div className="button-group">
+            <button
+              className="btn btn-primary"
               onClick={onUserModalOpen}
             >
               Ajouter un utilisateur
-            </Button>
-          </HStack>
+            </button>
+          </div>
           
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+          <div className="card-container">
             {users.map((user) => (
-              <Card key={user.id}>
-                <CardHeader>
-                  <HStack justify="space-between">
-                    <Heading size="sm">{user.username}</Heading>
-                    <HStack>
-                      <Text fontSize="sm" color={user.role === 'admin' ? 'green.500' : 'blue.500'}>
+              <div className="card" key={user.id}>
+                <div className="card-header">
+                  <div className="user-card-content">
+                    <h3 className="card-title">{user.username}</h3>
+                    <div className="user-info">
+                      <span className={user.role === 'admin' ? 'text-sm text-admin' : 'text-sm text-user'}>
                         {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
-                      </Text>
-                      <HStack>
+                      </span>
+                      <div className="button-group">
                         {user.role !== 'admin' && (
-                          <Button
-                            size="sm"
-                            colorScheme="blue"
+                          <button
+                            className="btn btn-primary btn-sm"
                             onClick={() => {
                               setSelectedUser(user);
                               onAccessModalOpen();
                             }}
                           >
                             Gérer accès
-                          </Button>
+                          </button>
                         )}
                         {user.username !== 'admin' && (
-                          <IconButton
+                          <button
+                            className="btn btn-danger btn-sm"
                             aria-label="Supprimer l'utilisateur"
-                            children="X"
-                            colorScheme="red"
-                            size="sm"
                             onClick={() => handleDeleteUser(user.id)}
-                          />
+                          >
+                            X
+                          </button>
                         )}
-                      </HStack>
-                    </HStack>
-                  </HStack>
-                </CardHeader>
-              </Card>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
-          </SimpleGrid>
-        </Box>
+          </div>
+        </div>
         
         {/* Ajout de container */}
-        <Box>
-          <Heading size="md" mb={4}>Ajouter un container</Heading>
-          <HStack>
-            <FormControl>
-              <Input
+        <div className="config-section">
+          <h2 className="config-section-title">Ajouter un container</h2>
+          <div className="form-group">
+            <div className="form-control">
+              <input
+                className="input"
                 placeholder="Titre du container"
                 value={newContainerTitle}
                 onChange={(e) => setNewContainerTitle(e.target.value)}
               />
-            </FormControl>
-            <Button
-
-              colorScheme="blue"
+            </div>
+            <button
+              className="btn btn-primary"
               onClick={handleAddContainer}
             >
               Ajouter
-            </Button>
-          </HStack>
-        </Box>
+            </button>
+          </div>
+        </div>
 
         {/* Liste des containers */}
-        <Box>
-          <Heading size="md" mb={4}>Containers</Heading>
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+        <div className="config-section">
+          <h2 className="config-section-title">Containers</h2>
+          <div className="card-container">
             {containers.map((container) => (
-              <Card key={container.id}>
-                <CardHeader>
-                  <HStack justify="space-between">
-                    <Heading size="sm">{container.title}</Heading>
-                    <HStack>
-                      <Button
-                        size="sm"
-                        colorScheme="blue"
+              <div className="card" key={container.id}>
+                <div className="card-header">
+                  <div className="container-card-content">
+                    <h3 className="card-title">{container.title}</h3>
+                    <div className="button-group">
+                      <button
+                        className="btn btn-primary btn-sm"
                         onClick={() => {
                           setSelectedContainer(container);
                           onOpen();
                         }}
                       >
                         Ajouter un cours
-                      </Button>
-                      <IconButton
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
                         aria-label="Supprimer le container"
-                        children="X"
-                        colorScheme="red"
-                        size="sm"
                         onClick={() => handleDeleteContainer(container.id)}
-                      />
-                    </HStack>
-                  </HStack>
-                </CardHeader>
-                <CardBody>
-                  <VStack align="stretch" spacing={2}>
+                      >
+                        X
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="card-body">
+                  <div className="course-list">
                     {courses
                       .filter(course => course.container_id === container.id)
                       .map(course => (
-                        <HStack key={course.id} justify="space-between">
-                          <Text>{course.title}</Text>
-                          <HStack spacing={2}>
-                            <Button
-                              size="sm"
-                              variant="link"
-                              colorScheme="blue"
-                              as="a"
+                        <div className="course-item" key={course.id}>
+                          <span className="course-title">{course.title}</span>
+                          <div className="course-actions">
+                            <a
+                              className="btn btn-link btn-sm"
                               href={course.link}
                               target="_blank"
+                              rel="noopener noreferrer"
                             >
                               Voir
-                            </Button>
-                            <Menu>
-                              <MenuButton
-                                as={Button}
-                                rightIcon={<ChevronDownIcon />}
-                                size="sm"
-                                variant="ghost"
-                              >
+                            </a>
+                            <div className="dropdown">
+                              <button className="btn btn-ghost btn-sm dropdown-toggle">
                                 Actions
-                              </MenuButton>
-                              <MenuList>
-                                <MenuItem
+                              </button>
+                              <div className="dropdown-content">
+                                <div 
+                                  className="dropdown-item"
                                   onClick={() => {
                                     setSelectedContainer({ ...container });
                                     setSelectedCourse(course);
@@ -734,9 +582,10 @@ const Config = () => {
                                   }}
                                 >
                                   Déplacer
-                                </MenuItem>
+                                </div>
 
-                                <MenuItem
+                                <div 
+                                  className="dropdown-item"
                                   onClick={() => {
                                     setSelectedCourse(course);
                                     setIsLoadingUsers(true);
@@ -744,26 +593,26 @@ const Config = () => {
                                   }}
                                 >
                                   Gérer les accès
-                                </MenuItem>
-                                <MenuItem
-                                  color="red.500"
+                                </div>
+                                <div 
+                                  className="dropdown-item danger"
                                   onClick={() => handleDeleteCourse(course.id)}
                                 >
                                   Supprimer
-                                </MenuItem>
-                              </MenuList>
-                            </Menu>
-                          </HStack>
-                        </HStack>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       ))
                     }
-                  </VStack>
-                </CardBody>
-              </Card>
+                  </div>
+                </div>
+              </div>
             ))}
-          </SimpleGrid>
-        </Box>
-      </VStack>
+          </div>
+        </div>
+      </div>
 
       {/* Modal de déplacement de cours */}
       {selectedCourse && selectedContainer && (
@@ -780,108 +629,115 @@ const Config = () => {
 
 
       {/* Modal d'ajout de cours */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Ajouter un cours à {selectedContainer?.title}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Titre du cours</FormLabel>
-                <Input
+      {isOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2 className="modal-title">Ajouter un cours à {selectedContainer?.title}</h2>
+              <button className="modal-close" onClick={onClose}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Titre du cours</label>
+                <input
+                  className="input"
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
                   placeholder="Entrez le titre"
                 />
-              </FormControl>
+              </div>
 
-              <FormControl>
-                <FormLabel>Lien</FormLabel>
-                <Input
+              <div className="form-group">
+                <label className="form-label">Lien</label>
+                <input
+                  className="input"
                   value={newCourseLink}
                   onChange={(e) => setNewCourseLink(e.target.value)}
                   placeholder="Entrez le lien"
                 />
-              </FormControl>
+              </div>
 
-              <Button colorScheme="blue" width="100%" onClick={handleAddCourse}>
+              <button className="btn btn-primary btn-block" onClick={handleAddCourse}>
                 Ajouter le cours
-              </Button>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal d'ajout d'utilisateur */}
-      <Modal isOpen={isUserModalOpen} onClose={onUserModalClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Ajouter un utilisateur</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Nom d'utilisateur</FormLabel>
-                <Input
+      {isUserModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2 className="modal-title">Ajouter un utilisateur</h2>
+              <button className="modal-close" onClick={onUserModalClose}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Nom d'utilisateur</label>
+                <input
+                  className="input"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   placeholder="Entrez le nom d'utilisateur"
                 />
-              </FormControl>
+              </div>
 
-              <FormControl>
-                <FormLabel>Mot de passe</FormLabel>
-                <Input
+              <div className="form-group">
+                <label className="form-label">Mot de passe</label>
+                <input
+                  className="input"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Entrez le mot de passe"
                 />
-              </FormControl>
+              </div>
 
-              <FormControl>
-                <FormLabel>Rôle</FormLabel>
-                <Select
+              <div className="form-group">
+                <label className="form-label">Rôle</label>
+                <select
+                  className="select"
                   value={newUserRole}
                   onChange={(e) => setNewUserRole(e.target.value as UserRole)}
                 >
                   <option value="user">Utilisateur</option>
                   <option value="admin">Administrateur</option>
-                </Select>
-              </FormControl>
+                </select>
+              </div>
 
-              <Button colorScheme="blue" width="100%" onClick={handleAddUser}>
+              <button className="btn btn-primary btn-block" onClick={handleAddUser}>
                 Ajouter l'utilisateur
-              </Button>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de gestion des accès aux cours */}
-      {selectedUser && (
-        <Modal isOpen={isAccessModalOpen} onClose={onAccessModalClose} size="xl">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Gérer les accès pour {selectedUser.username}</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody pb={6}>
-              <VStack spacing={4} align="stretch">
-                <Text>Sélectionnez les cours auxquels cet utilisateur a accès :</Text>
+      {selectedUser && isAccessModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal modal-large">
+            <div className="modal-header">
+              <h2 className="modal-title">Gérer les accès pour {selectedUser.username}</h2>
+              <button className="modal-close" onClick={onAccessModalClose}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="access-management">
+                <p>Sélectionnez les cours auxquels cet utilisateur a accès :</p>
                 
                 {containers.map(container => (
-                  <Box key={container.id} mb={4}>
-                    <Heading size="sm" mb={2}>{container.title}</Heading>
-                    <VStack align="stretch" spacing={2}>
+                  <div className="container-section" key={container.id}>
+                    <h3 className="container-title">{container.title}</h3>
+                    <div className="course-access-list">
                       {courses
                         .filter(course => course.container_id === container.id)
                         .map(course => (
-                          <HStack key={course.id} justify="space-between">
-                            <Text>{course.title}</Text>
-                            <Button
-                              size="sm"
-                              colorScheme={hasAccess(selectedUser.id, course.id) ? "red" : "green"}
+                          <div className="course-access-item" key={course.id}>
+                            <span className="course-title">{course.title}</span>
+                            <button
+                              className={`btn btn-sm ${hasAccess(selectedUser.id, course.id) ? "btn-danger" : "btn-success"}`}
                               onClick={() => {
                                 if (hasAccess(selectedUser.id, course.id)) {
                                   handleRemoveCourse(selectedUser.id, course.id);
@@ -891,72 +747,67 @@ const Config = () => {
                               }}
                             >
                               {hasAccess(selectedUser.id, course.id) ? "Retirer l'accès" : "Donner accès"}
-                            </Button>
-                          </HStack>
+                            </button>
+                          </div>
                         ))
                       }
-                    </VStack>
-                  </Box>
+                    </div>
+                  </div>
                 ))}
 
-                <Button colorScheme="blue" onClick={onAccessModalClose} mt={4}>
+                <button className="btn btn-primary" onClick={onAccessModalClose}>
                   Fermer
-                </Button>
-              </VStack>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de gestion des accès par cours */}
-      {selectedCourse && (
-        <Modal 
-          isOpen={isCourseAccessModalOpen} 
-          onClose={() => setIsCourseAccessModalOpen(false)} 
-          size="xl"
-        >
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Gérer les accès au cours: {selectedCourse.title}</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody pb={6}>
-              <VStack spacing={4} align="stretch">
-                <Text>Sélectionnez les utilisateurs qui ont accès à ce cours :</Text>
+      {selectedCourse && isCourseAccessModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal modal-large">
+            <div className="modal-header">
+              <h2 className="modal-title">Gérer les accès au cours: {selectedCourse.title}</h2>
+              <button className="modal-close" onClick={() => setIsCourseAccessModalOpen(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="access-management">
+                <p>Sélectionnez les utilisateurs qui ont accès à ce cours :</p>
                 
                 {isLoadingUsers ? (
-                  <Box p={4} textAlign="center" bg="blue.100" borderRadius="md">
-                    <Text>Chargement des utilisateurs en cours...</Text>
-                  </Box>
+                  <div className="loading-indicator">
+                    <p>Chargement des utilisateurs en cours...</p>
+                  </div>
                 ) : users.length === 0 ? (
-                  <Box p={4} textAlign="center" bg="orange.100" borderRadius="md">
-                    <Text>Aucun utilisateur trouvé. Vérifiez votre connexion à la base de données.</Text>
-                    <Button 
-                      mt={2} 
-                      colorScheme="blue" 
+                  <div className="empty-state warning">
+                    <p>Aucun utilisateur trouvé. Vérifiez votre connexion à la base de données.</p>
+                    <button 
+                      className="btn btn-primary" 
                       onClick={() => {
                         setIsLoadingUsers(true);
                         fetchUsers().finally(() => setIsLoadingUsers(false));
                       }}
                     >
                       Recharger les utilisateurs
-                    </Button>
-                  </Box>
+                    </button>
+                  </div>
                 ) : users.filter(user => user.role !== 'admin').length === 0 ? (
-                  <Box p={4} textAlign="center">
-                    <Text>Aucun utilisateur standard n'est disponible. Les administrateurs ont accès à tous les cours par défaut.</Text>
-                  </Box>
+                  <div className="empty-state">
+                    <p>Aucun utilisateur standard n'est disponible. Les administrateurs ont accès à tous les cours par défaut.</p>
+                  </div>
                 ) : (
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <div className="user-grid">
                     {users
                       .filter(user => user.role !== 'admin') // Les admins ont toujours accès à tous les cours
                       .map(user => (
-                        <Card key={user.id} variant="outline">
-                          <CardBody>
-                            <HStack justify="space-between">
-                              <Text>{user.username}</Text>
-                              <Button
-                                size="sm"
-                                colorScheme={hasAccess(user.id, selectedCourse.id) ? "red" : "green"}
+                        <div className="user-card" key={user.id}>
+                          <div className="user-card-body">
+                            <div className="user-access-item">
+                              <span className="user-name">{user.username}</span>
+                              <button
+                                className={`btn btn-sm ${hasAccess(user.id, selectedCourse.id) ? "btn-danger" : "btn-success"}`}
                                 onClick={() => {
                                   if (hasAccess(user.id, selectedCourse.id)) {
                                     handleRemoveCourse(user.id, selectedCourse.id);
@@ -966,24 +817,24 @@ const Config = () => {
                                 }}
                               >
                                 {hasAccess(user.id, selectedCourse.id) ? "Retirer l'accès" : "Donner accès"}
-                              </Button>
-                            </HStack>
-                          </CardBody>
-                        </Card>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       ))
                     }
-                  </SimpleGrid>
+                  </div>
                 )}
 
-                <Button colorScheme="blue" onClick={() => setIsCourseAccessModalOpen(false)} mt={4}>
+                <button className="btn btn-primary" onClick={() => setIsCourseAccessModalOpen(false)}>
                   Fermer
-                </Button>
-              </VStack>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-    </ChakraContainer>
+    </div>
   );
 };
 
