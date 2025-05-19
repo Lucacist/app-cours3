@@ -4,8 +4,8 @@
 
 [build.environment]
   CI = "false"
-  REACT_APP_SUPABASE_URL = "${REACT_APP_SUPABASE_URL}"
-  REACT_APP_SUPABASE_ANON_KEY = "${REACT_APP_SUPABASE_ANON_KEY}"
+  # Les variables d'environnement seront définies dans l'interface Netlify
+  # Ne pas mettre de valeurs réelles ici pour des raisons de sécurité
 
 [[redirects]]
   from = "/*"
