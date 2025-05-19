@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import '../styles/Config.css';
 
@@ -186,7 +185,7 @@ const Config = () => {
       return;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .rpc('add_user', {
         p_username: newUsername,
         p_password: newPassword,
@@ -208,7 +207,7 @@ const Config = () => {
   };
 
   const handleDeleteUser = async (userId: number) => {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .rpc('delete_user', {
         p_user_id: userId
       });
@@ -254,7 +253,7 @@ const Config = () => {
   };
 
   const handleAssignCourse = async (userId: number, courseId: number) => {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .rpc('assign_course_to_user', {
         p_user_id: userId,
         p_course_id: courseId
@@ -271,7 +270,7 @@ const Config = () => {
   };
 
   const handleRemoveCourse = async (userId: number, courseId: number) => {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .rpc('remove_course_from_user', {
         p_user_id: userId,
         p_course_id: courseId
@@ -311,6 +310,7 @@ const Config = () => {
     };
     
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Effet pour recharger les utilisateurs lorsque la modal des accès par cours s'ouvre
@@ -333,6 +333,7 @@ const Config = () => {
       
       loadUsersData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCourseAccessModalOpen, isLoadingUsers]);
 
   const handleAddContainer = async () => {
