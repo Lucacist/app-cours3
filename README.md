@@ -111,7 +111,3 @@ Une application web moderne permettant de gérer et d'accéder à des cours en l
 2. Effectuez vos modifications
 3. Soumettez une pull request
 
-## Licence
-
-Ce projet est sous licence [MIT](LICENSE).
-
