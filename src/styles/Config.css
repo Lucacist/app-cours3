@@ -4,6 +4,12 @@
   padding: var(--spacing-xl) var(--spacing-lg);
 }
 
+@media (max-width: 500px) {
+  .config-container {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+}
+
 .config-content {
   display: flex;
   flex-direction: column;
@@ -44,6 +50,29 @@
   gap: var(--spacing-md);
 }
 
+@media (max-width: 500px) {
+  .config-section {
+    padding: var(--spacing-md);
+  }
+  
+  .config-title {
+    font-size: 1.75rem;
+  }
+  
+  .config-section-title {
+    font-size: 1.25rem;
+  }
+  .form-control input {
+    width: 100%;
+  }
+  .form-control {
+    width: 100%;
+  }
+  .btn-link {
+margin: auto;  }
+   
+}
+
 .config-section:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--primary-color);
@@ -80,6 +109,18 @@
   align-items: flex-start;
 }
 
+@media (max-width: 500px) {
+  .form-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .form-group .btn {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
 .form-control {
   flex: 1;
   position: relative;
@@ -96,6 +137,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--spacing-lg);
+}
+
+@media (max-width: 500px) {
+  .card-container {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Styles spécifiques pour les cartes de cours */
@@ -191,6 +238,31 @@
   margin: 2px 0;
   padding: var(--spacing-md);
   transition: background-color var(--transition-fast);
+}
+
+@media (max-width: 500px) {
+  .course-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .course-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .dropdown {
+    width: 100%;
+  }
+  
+  .dropdown-toggle {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .course-item:hover {
@@ -500,9 +572,30 @@
 .container-card-content {
   display: flex;
   flex-direction: row;
-justify-content: space-between;
-gap: 1rem;
-width: 100%;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 500px) {
+  .container-card-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .container-card-content .card-title {
+    margin-bottom: 10px;
+  }
+  
+  .button-group {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  
+  .button-group .btn {
+    margin-bottom: 8px;
+  }
 }
 
 .loading-indicator {
@@ -517,4 +610,34 @@ width: 100%;
   text-align: center;
   background-color: var(--warning-bg);
   border-radius: 0.5rem;
+}
+
+/* Ajout de styles spécifiques pour les petits écrans */
+@media (max-width: 500px) {
+  .btn {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .container-banner {
+    height: 100px;
+  }
+  
+  .modal {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .modal-header {
+    padding: var(--spacing-md);
+  }
+  
+  .modal-body {
+    padding: var(--spacing-md);
+  }
 }
