@@ -147,6 +147,21 @@
   background-color: var(--background-light);
 }
 
+/* Styles pour les bannières des containers */
+.container-banner {
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  margin-bottom: 15px;
+  border-radius: 8px 8px 0 0;
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .course-locked {
   position: relative;
 }

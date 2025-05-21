@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import '../styles/Config.css';
 
@@ -83,6 +83,7 @@ const Config = () => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isCourseAccessModalOpen, setIsCourseAccessModalOpen] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [uploading, setUploading] = useState<{[key: number]: boolean}>({});
   const [toastMessage, setToastMessage] = useState<{title: string, description: string, status: 'success' | 'error' | 'warning' | 'info'} | null>(null);
   
   // Fonctions pour remplacer useDisclosure
@@ -336,6 +337,85 @@ const Config = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCourseAccessModalOpen, isLoadingUsers]);
 
+  // Fonction pour gérer le téléchargement de l'image de bannière
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>, containerId: number) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `container-banner-${containerId}-${Date.now()}.${fileExt}`;
+    
+    // Mettre à jour l'état pour indiquer que le téléchargement est en cours
+    setUploading(prev => ({ ...prev, [containerId]: true }));
+    
+    try {
+      // Utiliser directement l'URL de l'image pour le moment
+      // Cela nous permet de contourner les problèmes de stockage Supabase
+      const imageUrl = URL.createObjectURL(file);
+      
+      // Mettre à jour le container avec l'URL de l'image
+      const { error: updateError } = await supabase
+        .from('containers')
+        .update({ banner_image_url: imageUrl })
+        .eq('id', containerId);
+        
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour du container:', updateError);
+        throw updateError;
+      }
+      
+      // Mettre à jour l'état local
+      setContainers(prevContainers => 
+        prevContainers.map(container => 
+          container.id === containerId 
+            ? { ...container, banner_image_url: imageUrl } 
+            : container
+        )
+      );
+      
+      showToast('Succès', 'Image de bannière ajoutée temporairement. Note: Cette image ne sera pas persistante après rechargement de la page.', 'info');
+    } catch (error) {
+      console.error('Erreur lors du traitement de l\'image:', error);
+      showToast('Erreur', 'Erreur lors du traitement de l\'image.', 'error');
+    } finally {
+      setUploading(prev => ({ ...prev, [containerId]: false }));
+      // Réinitialiser le champ de fichier
+      e.target.value = '';
+    }
+  };
+
+  // Fonction pour supprimer la bannière d'un container
+  const handleRemoveBanner = async (containerId: number) => {
+    try {
+      // Mettre à jour le container pour supprimer l'URL de l'image
+      const { error: updateError } = await supabase
+        .from('containers')
+        .update({ banner_image_url: '' })
+        .eq('id', containerId);
+        
+      if (updateError) {
+        console.error('Erreur lors de la suppression de la bannière:', updateError);
+        throw updateError;
+      }
+      
+      // Mettre à jour l'état local
+      setContainers(prevContainers => 
+        prevContainers.map(container => 
+          container.id === containerId 
+            ? { ...container, banner_image_url: '' } 
+            : container
+        )
+      );
+      
+      showToast('Succès', 'Bannière supprimée avec succès', 'success');
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la bannière:', error);
+      showToast('Erreur', 'Erreur lors de la suppression de la bannière', 'error');
+    }
+  };
+
   const handleAddContainer = async () => {
     if (!newContainerTitle.trim()) {
       showToast('Erreur', 'Le titre ne peut pas être vide', 'error');
@@ -532,6 +612,15 @@ const Config = () => {
               <div className="card" key={container.id}>
                 <div className="card-header">
                   <div className="container-card-content">
+                    {container.banner_image_url && (
+                      <div className="container-banner">
+                        <img 
+                          src={container.banner_image_url} 
+                          alt={`Bannière pour ${container.title}`} 
+                          className="banner-image"
+                        />
+                      </div>
+                    )}
                     <h3 className="card-title">{container.title}</h3>
                     <div className="button-group">
                       <button
@@ -550,6 +639,31 @@ const Config = () => {
                       >
                         X
                       </button>
+                      <input
+                        type="file"
+                        id={`banner-upload-${container.id}`}
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => handleBannerUpload(e, container.id)}
+                      />
+                      <button 
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => document.getElementById(`banner-upload-${container.id}`)?.click()}
+                        disabled={uploading[container.id]}
+                      >
+                        {uploading[container.id] ? 'Chargement...' : container.banner_image_url ? 'Changer la bannière' : 'Ajouter une bannière'}
+                      </button>
+                      {container.banner_image_url && (
+                        <button 
+                          className="btn btn-danger btn-sm"
+                          style={{ width: 'auto' }}
+                          onClick={() => handleRemoveBanner(container.id)}
+                          title="Supprimer la bannière"
+                        >
+                          Supprimer bannière
+                        </button>
+                      )}
+                    
                     </div>
                   </div>
                 </div>

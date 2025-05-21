@@ -158,6 +158,7 @@ img {
   flex-direction: column;
   min-height: 100vh;
   max-width: 1280px;
+  margin: 0 3vw;
   width: 100%;
 }
 
@@ -817,11 +818,7 @@ border-radius: var(--border-radius);
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr;
   }
-  
-  .navbar-container {
-    flex-direction: column;
-    gap: 10px;
-  }
+
   
   .course-grid {
     grid-template-columns: 1fr;

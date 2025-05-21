@@ -127,6 +127,15 @@ const Home = () => {
         <div className="course-grid">
           {containers.map(container => (
             <div key={container.id} className="container-card">
+              {container.banner_image_url && container.banner_image_url !== '' && (
+                <div className="container-banner">
+                  <img 
+                    src={container.banner_image_url} 
+                    alt={`Bannière pour ${container.title}`} 
+                    className="banner-image"
+                  />
+                </div>
+              )}
               <h2 className="container-title">{container.title}</h2>
               <div className="course-list">
                 {courses

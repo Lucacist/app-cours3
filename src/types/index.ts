@@ -12,6 +12,7 @@ export type Container = {
   id: number;
   title: string;
   created_at: string;
+  banner_image_url?: string;
 };
 
 export type Course = {
