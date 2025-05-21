@@ -120,6 +120,7 @@ body {
   color: var(--text-color);
   background-color: var(--background-light);
   line-height: 1.6;
+  font-feature-settings: "ss02" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
