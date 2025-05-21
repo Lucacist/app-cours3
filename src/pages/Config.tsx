@@ -344,21 +344,25 @@ const Config = () => {
     }
     
     const file = e.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `container-banner-${containerId}-${Date.now()}.${fileExt}`;
+    
+    // Vérifier la taille du fichier (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Erreur', 'L\'image est trop volumineuse. Taille maximale: 2MB', 'error');
+      e.target.value = '';
+      return;
+    }
     
     // Mettre à jour l'état pour indiquer que le téléchargement est en cours
     setUploading(prev => ({ ...prev, [containerId]: true }));
     
     try {
-      // Utiliser directement l'URL de l'image pour le moment
-      // Cela nous permet de contourner les problèmes de stockage Supabase
-      const imageUrl = URL.createObjectURL(file);
+      // Convertir l'image en base64
+      const base64Image = await convertToBase64(file);
       
-      // Mettre à jour le container avec l'URL de l'image
+      // Mettre à jour le container avec l'image en base64
       const { error: updateError } = await supabase
         .from('containers')
-        .update({ banner_image_url: imageUrl })
+        .update({ banner_image_url: base64Image })
         .eq('id', containerId);
         
       if (updateError) {
@@ -370,12 +374,12 @@ const Config = () => {
       setContainers(prevContainers => 
         prevContainers.map(container => 
           container.id === containerId 
-            ? { ...container, banner_image_url: imageUrl } 
+            ? { ...container, banner_image_url: base64Image } 
             : container
         )
       );
       
-      showToast('Succès', 'Image de bannière ajoutée temporairement. Note: Cette image ne sera pas persistante après rechargement de la page.', 'info');
+      showToast('Succès', 'Image de bannière ajoutée avec succès', 'success');
     } catch (error) {
       console.error('Erreur lors du traitement de l\'image:', error);
       showToast('Erreur', 'Erreur lors du traitement de l\'image.', 'error');
@@ -384,6 +388,16 @@ const Config = () => {
       // Réinitialiser le champ de fichier
       e.target.value = '';
     }
+  };
+  
+  // Fonction pour convertir une image en base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
   };
 
   // Fonction pour supprimer la bannière d'un container
